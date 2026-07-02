@@ -7,7 +7,6 @@
 
 RotaryEncoder *encoder = new RotaryEncoder(ENCODER_PIN_A, ENCODER_PIN_B, RotaryEncoder::LatchMode::TWO03);
 OneButton *button = new OneButton(ENCODER_BUTTON_PIN, true); // true = active low
-unsigned long pressStartTime;
 
 // Encoder position tracking
 volatile int16_t encoderPos = 0;
@@ -74,8 +73,6 @@ void inputLoop()
     Serial.println(rpm);
     int delta = pos - encoderPos;
     encoderPos = pos;
-
-
     // Adjust PWM by delta (one step per detent)
     int curPwm = mqttGetLedPwm();
     Serial.println("Current PWM: " + String(curPwm));
