@@ -1,19 +1,19 @@
 #include <Arduino.h>
+
 #include "config.h"
-#include "mqtt.h"
 #include "input.h"
-
-
+#include "led.h"
+#include "mqtt.h"
 
 void setup() {
-  Serial.begin(115200);
-  inputInit();
-  mqttInit();
+  Serial.begin(config::SERIAL_BAUD, SERIAL_8N1, SERIAL_TX_ONLY);
+  led::begin();
+  input::begin();
+  mqtt::begin();
 }
 
 void loop() {
-  inputLoop();
-  mqttLoop();
-  // Serial.println("Looping...");
+  input::loop();
+  mqtt::loop();
   delay(10);
 }

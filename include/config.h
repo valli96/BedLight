@@ -1,45 +1,24 @@
-// Minimal configuration header
 #pragma once
 
-// Optional local overrides: create include/config.local.h (gitignored)
-#if defined(__has_include)
-#  if __has_include("config.local.h")
-#    include "config.local.h"
-#  endif
-#endif
+#include <stdint.h>
 
-// MQTT defaults (can be overridden in config.local.h)
-#ifndef MQTT_BROKER
-static const char MQTT_BROKER[] = "192.168.0.1";
-#endif
-#ifndef MQTT_PORT
-static const unsigned int MQTT_PORT = 1883u;
-#endif
-#ifndef MQTT_USER
-static const char MQTT_USER[] = "mqtt_user";
-#endif
-#ifndef MQTT_PASSWORD
-// Default MQTT password (override in config.local.h)
-#endif
+namespace config {
+constexpr uint32_t SERIAL_BAUD = 115200;
 
-// Hardware defaults (pins)
-#ifndef LED_PIN
-static const int LED_PIN = 3;
-#endif
-#ifndef ENCODER_PIN_A
-static const int ENCODER_PIN_A = 12;
-#endif
-#ifndef ENCODER_PIN_B
-static const int ENCODER_PIN_B = 13;
-#endif
-#ifndef ENCODER_BUTTON_PIN
-static const int ENCODER_BUTTON_PIN = 14;
-#endif
+// GPIO3 is the UART RX pin, so serial runs TX-only.
+constexpr uint8_t LED_PIN = 3;
+constexpr uint8_t ENCODER_PIN_A = 12;
+constexpr uint8_t ENCODER_PIN_B = 13;
+constexpr uint8_t ENCODER_BUTTON_PIN = 14;
 
-// PWM range (0..ANALOG_MAX)
-#ifndef ANALOG_MAX
-static const int ANALOG_MAX = 255;
-#endif
+constexpr int PWM_MAX = 255;
+constexpr bool SCALE_WITH_RPM = true;
+constexpr float RPM_SCALE_FACTOR = 100.0f;
+constexpr unsigned int LONG_PRESS_MS = 1000;
 
-const bool SCALE_WITH_RPM  = true;
-static const float RPM_SCALE_FACTOR = 100.0f;
+constexpr char MQTT_CLIENT_ID[] = "bedlight_client";
+constexpr unsigned long MQTT_RECONNECT_MS = 5000;
+constexpr char TOPIC_POWER[] = "bedroom/bedlight/power";
+constexpr char TOPIC_DOUBLE_CLICK[] = "bedroom/bedlight/button/doubleclick";
+constexpr char TOPIC_LONG_PRESS[] = "bedroom/bedlight/button/longpress";
+}

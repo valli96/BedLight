@@ -1,93 +1,40 @@
 #include "input.h"
+
+#include <OneButton.h>
+#include <RotaryEncoder.h>
+
 #include "config.h"
+#include "led.h"
 #include "mqtt.h"
 
-#include <RotaryEncoder.h>
-#include <OneButton.h>
+namespace input {
+namespace {
+RotaryEncoder encoder(config::ENCODER_PIN_A, config::ENCODER_PIN_B, RotaryEncoder::LatchMode::TWO03);
+OneButton button(config::ENCODER_BUTTON_PIN, true);
+long lastPosition = 0;
 
-RotaryEncoder *encoder = new RotaryEncoder(ENCODER_PIN_A, ENCODER_PIN_B, RotaryEncoder::LatchMode::TWO03);
-OneButton *button = new OneButton(ENCODER_BUTTON_PIN, true); // true = active low
-
-// Encoder position tracking
-volatile int16_t encoderPos = 0;
-
-// Called when button is clicked -> toggle LED
-void onButtonClick()
-{
-  mqttToggleLed();
-  // digitalWrite(3, !digitalRead(3));
-}
-// ISR attribute macro for ESP8266/ESP32
-#if defined(ARDUINO_ARCH_ESP8266)
-#define INPUT_ISR_ATTR ICACHE_RAM_ATTR
-#else
-#define INPUT_ISR_ATTR IRAM_ATTR
-#endif
-
-// ISR must be a plain function in IRAM and do minimal work. Use
-// the library's service() method which is ISR-safe.
-void INPUT_ISR_ATTR encoderISR()
-{
-  if (encoder)
-    encoder->tick();
-}
-void INPUT_ISR_ATTR buttonISR()
-{
-  if (button)
-    button->tick();
+void IRAM_ATTR onEncoderChange() { encoder.tick(); }
 }
 
-void inputInit()
-{
-  pinMode(3, OUTPUT);
-  // Prepare pins
+void begin() {
+  attachInterrupt(digitalPinToInterrupt(config::ENCODER_PIN_A), onEncoderChange, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(config::ENCODER_PIN_B), onEncoderChange, CHANGE);
 
-  // Attach interrupts to encoder pins (ISR will call encoder->service())
-  attachInterrupt(digitalPinToInterrupt(ENCODER_PIN_A), encoderISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_PIN_B), encoderISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_BUTTON_PIN), buttonISR, CHANGE);
-
-  // Setup button handlers; OneButton must be polled from loop() via tick().
-  button->attachClick(onButtonClick);
-  button->attachDoubleClick([](){
-  mqttPublish("bedroom/bedlight/button/doubleclick", "1");
-  });
-  button->setPressMs(1000);
-  button->attachLongPressStart([](){
-    mqttPublish("bedroom/bedlight/button/longpress", "1");
-  });
+  button.setPressMs(config::LONG_PRESS_MS);
+  button.attachClick([] { led::toggle(); });
+  button.attachDoubleClick([] { mqtt::publish(config::TOPIC_DOUBLE_CLICK, "1"); });
+  button.attachLongPressStart([] { mqtt::publish(config::TOPIC_LONG_PRESS, "1"); });
 }
 
-void inputLoop()
-{
-  button->tick();
-  encoder->tick();
+void loop() {
+  button.tick();
 
-  int16_t pos = encoder->getPosition();
-  float rpm = encoder->getRPM();
-  // Serial.print("RPM: "); Serial.println(rpm);
+  const long position = encoder.getPosition();
+  if (position == lastPosition) return;
 
-  if (pos != encoderPos)
-  {
-    Serial.print("RPM: ");
-    Serial.println(rpm);
-    int delta = pos - encoderPos;
-    encoderPos = pos;
-    // Adjust PWM by delta (one step per detent)
-    int curPwm = mqttGetLedPwm();
-    Serial.println("Current PWM: " + String(curPwm));
-    if (SCALE_WITH_RPM)
-    {
-      // Scale delta by RPM (e.g. 1 step per 10 RPM)
-      float scale = 1 + rpm / RPM_SCALE_FACTOR;
-      delta = static_cast<int>(delta * scale);
-      Serial.println("Scaled delta: " + String(delta));
-    } 
-    int newPwm = curPwm + delta;
-    if (newPwm < 0)
-      newPwm = 0;
-    if (newPwm > ANALOG_MAX)
-      newPwm = ANALOG_MAX;
-    mqttSetLedPwm(newPwm);
-  }
+  const float scale = config::SCALE_WITH_RPM ? 1.0f + encoder.getRPM() / config::RPM_SCALE_FACTOR : 1.0f;
+  const int delta = static_cast<int>((position - lastPosition) * scale);
+  lastPosition = position;
+  led::set(led::level() + delta);
+}
 }
