@@ -24,5 +24,9 @@ void set(int value) {
 
 int level() { return current; }
 
+void on() {
+  if (current == 0) set(lastOn);
+}
+
 void toggle() { set(current > 0 ? 0 : lastOn); }
 }
