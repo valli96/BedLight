@@ -32,9 +32,7 @@ void loop() {
   const long position = encoder.getPosition();
   if (position == lastPosition) return;
 
-  const float scale = config::SCALE_WITH_RPM ? 1.0f + encoder.getRPM() / config::RPM_SCALE_FACTOR : 1.0f;
-  const int delta = static_cast<int>((position - lastPosition) * scale);
+  led::step(static_cast<int>(position - lastPosition));
   lastPosition = position;
-  led::set(led::level() + delta);
 }
 }

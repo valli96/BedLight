@@ -34,25 +34,22 @@ GPIO3 is also the UART RX pin, so the serial port only sends (TX) and is used fo
 
 | Action        | Effect                                                                      |
 |---------------|-----------------------------------------------------------------------------|
-| Turn          | Dims the light up or down (PWM 0–255).                                      |
+| Turn          | Dims the light up or down, very finely near off.                            |
 | Single click  | Turns the light off, or back on at the last brightness it had.              |
 | Double click  | Publishes `1` to `bedroom/bedlight/button/doubleclick`.                     |
 | Long press (1 s) | Publishes `1` to `bedroom/bedlight/button/longpress`.                    |
 
 The double click and long press don't change the light directly. They show up as device triggers in Home Assistant, so you can use them in automations, such as switching other lights in the room.
 
-### Speed-dependent dimming
+### Fine dimming at the low end
 
-How much the brightness changes on each encoder step depends on how fast you turn the knob:
+Each detent changes the brightness by 10% of its current level, and by at least one step. The PWM runs at 10-bit resolution (0–1023), so:
 
-```
-step = detents × (1 + RPM / 100)
-```
+- **Near off**, each detent moves a single step (0.1%), which gives very fine control in the dark.
+- **Near full brightness**, each detent changes the brightness by about 10%.
+- **Off to full** takes 64 detents. Turning faster just passes more detents, so there is no sudden jump.
 
-- **Turning slowly** (close to 0 RPM) changes the brightness by about 1 per detent, so you can make fine adjustments.
-- **Turning at 100 RPM** doubles the step, **at 300 RPM** it is 4 per detent, and so on.
-
-This lets a quick flick go from off to full brightness, while a slow turn still gives fine control. You can tune it, or turn it off, with `SCALE_WITH_RPM` and `RPM_SCALE_FACTOR` in [include/config.h](include/config.h).
+You can set the step size with `DIM_STEP_PERCENT` in [include/config.h](include/config.h).
 
 ## Home Assistant
 
@@ -74,9 +71,12 @@ The double click and long press show up as **device triggers**, so you can pick 
 | `bedroom/bedlight/state`              | out       | `ON` / `OFF` (retained)                  |
 | `bedroom/bedlight/brightness`         | out       | `1`–`255` (retained)                     |
 | `bedroom/bedlight/status`             | out       | `online` / `offline` (retained, LWT)     |
+| `bedroom/bedlight/info`               | out       | IP, Wi-Fi RSSI, reset reason (retained)  |
 | `bedroom/bedlight/button/doubleclick` | out       | `1`                                      |
 | `bedroom/bedlight/button/longpress`   | out       | `1`                                      |
 | `homeassistant/status`                | in        | `online` triggers a new discovery        |
+
+Home Assistant brightness (0–255) is gamma-mapped onto the PWM range, so 50% in Home Assistant looks like half brightness.
 
 The device connects to Wi-Fi without blocking startup, so the encoder works even when there is no network. If the connection to the MQTT broker drops, it tries to reconnect every 5 seconds.
 
