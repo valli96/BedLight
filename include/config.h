@@ -5,8 +5,8 @@
 namespace config {
 constexpr uint32_t SERIAL_BAUD = 115200;
 
-// GPIO3 is the UART RX pin, so serial runs TX-only.
-constexpr uint8_t LED_PIN = 3;
+// D1 mini labels: LED = D1, encoder A = D6, B = D7, button = D5.
+constexpr uint8_t LED_PIN = 5;
 constexpr uint8_t ENCODER_PIN_A = 12;
 constexpr uint8_t ENCODER_PIN_B = 13;
 constexpr uint8_t ENCODER_BUTTON_PIN = 14;

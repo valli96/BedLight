@@ -7,7 +7,7 @@
 #include "persist.h"
 
 void setup() {
-  Serial.begin(config::SERIAL_BAUD, SERIAL_8N1, SERIAL_TX_ONLY);
+  Serial.begin(config::SERIAL_BAUD);
   const persist::State saved = persist::take();
   led::begin();
   if (saved.level >= 0) led::restore(saved.level, saved.lastOn);
